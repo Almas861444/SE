@@ -1,0 +1,35 @@
+$ node scripts/demo.mjs
+# date: 2026-11-08 14:52 UTC  node: v22.23.4
+
+== 1. Catalog
+R101 Aurora Lab            30 seats  blocked=false  [computers,projector,whiteboard]  bookings=10:00-11:00,13:00-14:30,15:00-16:00
+R102 Birch Seminar Room    12 seats  blocked=false  [video-conference,whiteboard]  bookings=09:30-10:30,12:00-13:00
+R201 Cedar Lecture Hall   120 seats  blocked=false  [microphone,projector,video-conference,whiteboard]  bookings=11:00-12:30,15:00-16:00
+R202 Delta Studio          20 seats  blocked=true  [computers,projector,whiteboard]  bookings=
+R301 Echo Huddle            6 seats  blocked=false  [whiteboard]  bookings=09:00-10:00,10:00-11:00
+
+== 2. SUCCESSFUL filtering: 10 attendees + projector
+rooms shown: R101, R201, R202
+
+== 3. SUCCESSFUL filtering: 25 attendees + video-conference + projector
+rooms shown: R201
+
+== 4. UNSUCCESSFUL filtering (F4 empty state): 500 attendees
+rooms shown: (none) | empty = true
+
+== 5. Room switching refreshes the result (same time 10:30-11:30)
+R101: CONFLICT: Not available: overlaps with "Algorithms lecture" (10:00–11:00).
+R102: AVAILABLE: Available: Birch Seminar Room is free from 10:30 to 11:30.
+R201: CONFLICT: Not available: overlaps with "Databases lecture" (11:00–12:30).
+R202: BLOCKED: Delta Studio is blocked and cannot be booked.
+R301: CONFLICT: Not available: overlaps with "Design review" (10:00–11:00).
+
+== 6. Availability checks on R101 (successful and unsuccessful)
+11:00-12:00 (free slot) -> AVAILABLE: Available: Aurora Lab is free from 11:00 to 12:00.
+09:00-10:00 (touching start of 10:00 booking) -> AVAILABLE: Available: Aurora Lab is free from 09:00 to 10:00.
+10:30-11:30 (overlap) -> CONFLICT: Not available: overlaps with "Algorithms lecture" (10:00–11:00).
+11:00-13:00 (exactly 120 min) -> AVAILABLE: Available: Aurora Lab is free from 11:00 to 13:00.
+11:00-13:01 (121 min) -> TOO_LONG: A booking can last at most 120 minutes. You requested 121 minutes.
+08:30-09:30 (before current time) -> INVALID: Start time cannot be earlier than the current time (09:00).
+9:30-10:30 (bad format) -> INVALID: Enter start and end times in HH:MM format (for example 10:30).
+# exit code: 0

@@ -1,0 +1,20 @@
+digraph after {
+  rankdir=TB; fontname="Helvetica"; node [fontname="Helvetica", fontsize=11, shape=box, style="rounded,filled"]; edge [fontname="Helvetica", fontsize=9]; nodesep=0.35;
+  html [label="final/index.html + styles.css", fillcolor="#e8eef0"];
+  subgraph cluster_ui { label="UI layer (final/src/ui)"; style="rounded"; color="#c98b84"; fontsize=12;
+    main [label="main.js\nDOM events -> dispatch(); writes HTML", fillcolor="#f6d5d1"];
+    render [label="render.js\nview model -> HTML strings (escaped)", fillcolor="#f6d5d1"];
+    store [label="store.js\nstate, reduce(), buildViewModel()\n(no DOM)", fillcolor="#f9e3b4"];
+  }
+  subgraph cluster_core { label="Domain rules (final/src/core) - pure functions"; style="rounded"; color="#5aa586"; fontsize=12;
+    avail [label="availability.js\nAC1-AC4: validate, overlap, check", fillcolor="#cfe8dc"];
+    filter [label="filter.js\nF1-F2: requirements + filter", fillcolor="#cfe8dc"];
+    time [label="time.js\nparseTime / formatTime (single parser)", fillcolor="#cfe8dc"];
+  }
+  subgraph cluster_data { label="Data (final/src/data)"; style="rounded"; color="#d3a64a"; fontsize=12;
+    rooms [label="rooms.js\n5 fictional rooms, deep-frozen", fillcolor="#fde9c8"];
+  }
+  cfg [label="config.js\nNOW_HHMM, MAX_DURATION_MINUTES", fillcolor="#e3e0f2"];
+  html -> main [label="loads"]; main -> store; main -> render; main -> rooms [label="injects catalog"];
+  store -> avail; store -> filter; store -> time; avail -> time; avail -> cfg; store -> cfg;
+}

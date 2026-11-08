@@ -1,0 +1,66 @@
+// Pure HTML rendering: view model -> string. Single place that builds markup.
+// Every dynamic value goes through esc() so catalog text cannot inject markup.
+const esc = (v) => String(v).replace(/[&<>"']/g, (c) =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+export function renderRequirementError(vm) {
+  return vm.requirements.error ? `<p class="field-error">${esc(vm.requirements.error)}</p>` : '';
+}
+
+export function renderRoomList(vm) {
+  if (vm.empty) {
+    const { attendees, equipment } = vm.requirements;
+    const parts = [];
+    if (attendees !== null) parts.push(`seat ${attendees} people`);
+    if (equipment.length) parts.push(`have ${equipment.join(', ')}`);
+    const need = parts.length ? parts.join(' and ') : 'meet your requirements';
+    return `<div class="empty" role="status"><strong>No rooms match</strong>` +
+      `<p>None of the ${vm.totalRooms} rooms ${esc(need)}. Lower the attendee count or remove an equipment item.</p></div>`;
+  }
+  const items = vm.rooms.map((r) => `
+    <li class="room" data-selected="${r.selected}" data-blocked="${r.blocked}">
+      <label>
+        <input type="radio" name="room" value="${esc(r.id)}"${r.selected ? ' checked' : ''}>
+        <span class="room-name">${esc(r.name)} <span class="room-id">${esc(r.id)}</span></span>
+        <span class="room-seats">${r.capacity} seats</span>
+        <span class="room-equipment">${esc(r.equipment.join(', '))}</span>
+        ${r.blocked ? '<span class="badge">Blocked</span>' : ''}
+      </label>
+    </li>`).join('');
+  return `<ul class="rooms">${items}</ul>`;
+}
+
+export function renderResult(vm) {
+  if (vm.result) {
+    return `<div class="result result--${vm.result.tone}"><strong>${esc(vm.result.title)}</strong>` +
+      `<p>${esc(vm.result.message)}</p></div>`;
+  }
+  const text = vm.notice || vm.hint;
+  return text ? `<p class="hint">${esc(text)}</p>` : '';
+}
+
+export function renderBookings(vm) {
+  const room = vm.selectedRoom;
+  if (!room) return '';
+  const rows = room.bookings.length
+    ? room.bookings.map((b) => `<li><span class="slot">${esc(b.start)}\u2013${esc(b.end)}</span> ${esc(b.title)}</li>`).join('')
+    : '<li>No bookings today.</li>';
+  return `<h3>${esc(room.name)} today</h3><ul class="bookings">${rows}</ul>`;
+}
+
+export function renderTimeline(vm) {
+  const t = vm.timeline;
+  if (!t) return '';
+  const block = (pos, cls, label) =>
+    `<span class="${cls}" style="left:${pos.left.toFixed(2)}%;width:${pos.width.toFixed(2)}%" title="${esc(label)}"></span>`;
+  const booked = t.booked.map((b) => block(b.pos, 'tl-booked', `${b.start}\u2013${b.end} ${b.title}`)).join('');
+  const request = t.request ? block(t.request, `tl-request tl-request--${t.tone}`, 'Requested time') : '';
+  return `<div class="timeline" aria-hidden="true"><div class="tl-track">${booked}${request}</div>` +
+    `<div class="tl-scale"><span>${esc(t.startLabel)}</span><span>${esc(t.endLabel)}</span></div></div>`;
+}
+
+export function renderEquipmentOptions(vm, checked = []) {
+  return vm.equipmentOptions.map((item) =>
+    `<label class="chip"><input type="checkbox" name="equipment" value="${esc(item)}"${checked.includes(item) ? ' checked' : ''}> ${esc(item)}</label>`
+  ).join('');
+}

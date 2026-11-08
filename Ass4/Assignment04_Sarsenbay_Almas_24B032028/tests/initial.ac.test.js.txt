@@ -1,0 +1,40 @@
+'use strict';
+// Baseline tests for the ORIGINAL single-room prototype (v1): AC1-AC5.
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const v1 = require('../initial/app.js');
+
+test('v1 AC1: malformed time is rejected', () => {
+  assert.equal(v1.checkAvailability('9am', '10:00').status, 'INVALID');
+});
+test('v1 AC1: end must be after start', () => {
+  assert.equal(v1.checkAvailability('12:00', '12:00').status, 'INVALID');
+  assert.equal(v1.checkAvailability('12:30', '12:00').status, 'INVALID');
+});
+test('v1 AC1: start earlier than fixed current time 09:00 is rejected, 09:00 is accepted', () => {
+  assert.equal(v1.checkAvailability('08:30', '09:30').status, 'INVALID');
+  assert.equal(v1.checkAvailability('09:00', '09:30').status, 'AVAILABLE');
+});
+test('v1 AC2: exactly 120 minutes is accepted, 121 minutes is rejected', () => {
+  assert.equal(v1.checkAvailability('11:00', '13:00').status, 'AVAILABLE');
+  assert.equal(v1.checkAvailability('11:00', '13:01').status, 'TOO_LONG');
+});
+test('v1 AC3: blocked room is never available', () => {
+  v1.ROOM.blocked = true;
+  try { assert.equal(v1.checkAvailability('11:00', '11:30').status, 'BLOCKED'); }
+  finally { v1.ROOM.blocked = false; }
+});
+test('v1 AC4: overlapping intervals conflict, touching intervals do not', () => {
+  assert.equal(v1.checkAvailability('09:30', '10:30').status, 'CONFLICT');
+  assert.equal(v1.checkAvailability('10:30', '11:30').status, 'CONFLICT');
+  assert.equal(v1.checkAvailability('10:15', '10:45').status, 'CONFLICT');
+  assert.equal(v1.checkAvailability('09:00', '10:00').status, 'AVAILABLE');
+  assert.equal(v1.checkAvailability('11:00', '12:00').status, 'AVAILABLE');
+});
+test('v1 AC5: booking data is immutable and checks do not change it', () => {
+  const before = JSON.stringify(v1.BOOKINGS);
+  assert.ok(Object.isFrozen(v1.BOOKINGS) && v1.BOOKINGS.every(Object.isFrozen));
+  assert.throws(() => { v1.BOOKINGS[0].start = '00:00'; }, TypeError);
+  v1.checkAvailability('11:00', '12:00');
+  assert.equal(JSON.stringify(v1.BOOKINGS), before);
+});

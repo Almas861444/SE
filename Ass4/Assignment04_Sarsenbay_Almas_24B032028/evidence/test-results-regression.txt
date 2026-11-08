@@ -1,0 +1,29 @@
+$ npm run test:regression
+# date: 2026-11-08 14:52 UTC  node: v22.23.4
+
+> smart-campus-room-checker@2.0.0 test:regression
+> node --test tests/regression.initial-vs-final.test.mjs
+
+TAP version 13
+# Subtest: v1 vs v2: identical status and message for 20 time scenarios on room R101
+ok 1 - v1 vs v2: identical status and message for 20 time scenarios on room R101
+  ---
+  duration_ms: 3.001389
+  type: 'test'
+  ...
+# Subtest: v1 vs v2: blocked-room behaviour is identical
+ok 2 - v1 vs v2: blocked-room behaviour is identical
+  ---
+  duration_ms: 0.633476
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 88.748023
+# exit code: 0

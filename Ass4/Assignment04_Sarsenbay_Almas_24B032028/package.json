@@ -1,0 +1,16 @@
+{
+  "name": "smart-campus-room-checker",
+  "version": "2.0.0",
+  "description": "Software Engineering Assignment #04 - Smart Campus Room Availability Checker (v1 baseline + v2 refactored/extended)",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "test": "node --test \"tests/*.test.*js\"",
+    "test:initial": "node --test tests/initial.ac.test.js",
+    "test:final": "node --test \"tests/final.*.test.mjs\"",
+    "test:regression": "node --test tests/regression.initial-vs-final.test.mjs",
+    "demo": "node scripts/demo.mjs",
+    "metrics": "node scripts/metrics.mjs",
+    "start": "node final/server.js"
+  }
+}

@@ -1,0 +1,13 @@
+digraph before {
+  rankdir=TB; fontname="Helvetica"; node [fontname="Helvetica", fontsize=11, shape=box, style="rounded,filled"]; edge [fontname="Helvetica", fontsize=9];
+  html [label="initial/index.html\n(page + inline CSS)", fillcolor="#e8eef0"];
+  subgraph cluster_app { label="initial/app.js  (ONE file, 101 code lines)"; style="rounded,dashed"; color="#7a8a90"; fontsize=12;
+    data [label="DATA (globals)\nROOM, BOOKINGS, CURRENT_TIME", fillcolor="#fde9c8"];
+    rules [label="RULES\ncheckAvailability()\ndescribeBooking()", fillcolor="#cfe8dc"];
+    dom [label="DOM + RENDERING\nonCheckClick() / onTimeInput()\nshowBookings()  (7 markup templates)", fillcolor="#f6d5d1"];
+    dup [label="DUPLICATION\nvalidation copy A (checkAvailability)\nvalidation copy B (onTimeInput)\n9 x split(':'), 4 x literal 120", shape=note, fillcolor="#fff6bf"];
+  }
+  html -> dom [label="loads"];
+  dom -> rules [label="calls"]; rules -> data [label="reads"]; dom -> data [label="reads"];
+  dup -> rules [style=dotted, arrowhead=none]; dup -> dom [style=dotted, arrowhead=none];
+}

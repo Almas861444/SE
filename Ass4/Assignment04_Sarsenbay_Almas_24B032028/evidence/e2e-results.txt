@@ -1,0 +1,22 @@
+$ python3 tests/e2e/ui_check.py
+# date: 2026-11-08 14:52 UTC  node: v22.23.4
+PASS - E1 page loads with all 5 catalog rooms ['R101', 'R102', 'R201', 'R202', 'R301']
+PASS - E2 equipment checkboxes are generated from the catalog 
+PASS - E3 capacity>=10 AND projector -> R101, R201, R202 ['R101', 'R201', 'R202']
+PASS - E4 blocked room is visibly flagged 
+PASS - E5 unsuccessful check: overlap is reported Time slot taken |  | Not available: overlaps with "Algorithms lecture" (10:00–11:00).
+PASS - E6 room switch refreshes the result (R102 is free 10:30-11:30) Room is free |  | Available: Birch Seminar Room is free from 10:30 to 11:30.
+PASS - E7 switching to blocked room reports BLOCKED Room blocked |  | Delta Studio is blocked and cannot be booked.
+PASS - E8 180-minute request is rejected as too long, even for the blocked room (AC2 precedes AC3) Booking too long |  | A booking can last at most 120 minutes. You requested 180 minutes.
+PASS - E9 121-minute request is rejected (AC2 boundary) Booking too long |  | A booking can last at most 120 minutes. You requested 121 minutes.
+PASS - E10 exactly 120 minutes is accepted (AC2 boundary) Room is free |  | Available: Cedar Lecture Hall is free from 09:00 to 11:00.
+PASS - E11 invalid time format shows a clear message (AC1/AC6) Check the time |  | Enter start and end times in HH:MM format (for example 10:30).
+PASS - E12 empty state when no room matches (F4) 
+PASS - E13 'Clear requirements' restores the full catalog 
+PASS - E14 invalid attendees shows a field error 
+PASS - E15 mobile 375px: no horizontal scrolling overflow=0px
+PASS - E16 mobile layout is a single column 
+PASS - E17 no JavaScript/console errors during the whole run []
+
+Browser UI checks: 17/17 passed
+# exit code: 0

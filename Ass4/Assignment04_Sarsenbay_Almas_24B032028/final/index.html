@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Campus room finder</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top">
+    <h1>Campus room finder</h1>
+    <p class="clock">Campus clock <strong id="now">09:00</strong> (fixed for this demo)</p>
+  </header>
+
+  <main class="layout">
+    <section class="panel" aria-labelledby="h-need">
+      <h2 id="h-need">What does the meeting need?</h2>
+      <div class="field">
+        <label for="attendees">Attendees</label>
+        <input id="attendees" type="text" inputmode="numeric" autocomplete="off" placeholder="e.g. 12">
+        <div id="req-error"></div>
+      </div>
+      <fieldset class="field">
+        <legend>Required equipment (room must have all)</legend>
+        <div id="equipment" class="chips"></div>
+      </fieldset>
+
+      <div class="list-head">
+        <h2 id="h-rooms">Matching rooms</h2>
+        <span id="room-count" class="count"></span>
+      </div>
+      <fieldset class="rooms-set" aria-labelledby="h-rooms">
+        <div id="rooms"></div>
+      </fieldset>
+      <button type="button" id="clear" class="link">Clear requirements</button>
+    </section>
+
+    <section class="panel" aria-labelledby="h-when">
+      <h2 id="h-when">When?</h2>
+      <form id="form" novalidate>
+        <div class="times">
+          <div class="field">
+            <label for="start">Start</label>
+            <input id="start" type="text" inputmode="numeric" autocomplete="off" placeholder="HH:MM">
+          </div>
+          <div class="field">
+            <label for="end">End</label>
+            <input id="end" type="text" inputmode="numeric" autocomplete="off" placeholder="HH:MM">
+          </div>
+        </div>
+        <button type="submit" id="check" class="primary">Check availability</button>
+      </form>
+      <div id="result" aria-live="polite"></div>
+      <div id="timeline"></div>
+      <div id="bookings"></div>
+    </section>
+  </main>
+
+  <script type="module" src="src/ui/main.js"></script>
+</body>
+</html>

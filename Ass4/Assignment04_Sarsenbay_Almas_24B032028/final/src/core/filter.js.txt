@@ -1,0 +1,28 @@
+// Room filtering rules F1, F2 (F3 lives in availability.js). Pure functions.
+
+/**
+ * Turn raw form values into normalized requirements.
+ * attendees: '' / null -> no capacity constraint; otherwise must be a whole number >= 1.
+ */
+export function parseRequirements(raw = {}) {
+  const equipment = Array.isArray(raw.equipment) ? [...raw.equipment] : [];
+  const text = raw.attendees === undefined || raw.attendees === null ? '' : String(raw.attendees).trim();
+  if (text === '') return { attendees: null, equipment, error: null };
+  if (!/^\d+$/.test(text) || Number(text) < 1) {
+    return { attendees: null, equipment, error: 'Attendees must be a whole number of 1 or more.' };
+  }
+  return { attendees: Number(text), equipment, error: null };
+}
+
+/** F1: capacity >= attendees.  F2: room has ALL required equipment items. */
+export function filterRooms(rooms, requirements) {
+  const { attendees, equipment } = requirements;
+  return rooms.filter((room) =>
+    (attendees === null || room.capacity >= attendees) &&
+    equipment.every((item) => room.equipment.includes(item)));
+}
+
+/** Sorted list of every distinct equipment item in the catalog (to build the checkboxes). */
+export function listEquipment(rooms) {
+  return [...new Set(rooms.flatMap((r) => r.equipment))].sort();
+}

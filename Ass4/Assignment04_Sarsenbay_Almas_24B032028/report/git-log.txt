@@ -1,0 +1,3 @@
+9aba2bd (HEAD -> main) tests: v2 unit/integration/regression suites, browser check, mutation check, demo and metrics scripts
+71bea78 v2: modular catalog, availability, filter and UI layers (one change at a time)
+18003bc (tag: v1-initial) v1 baseline: monolithic single-room prototype + AC1-AC5 tests (7/7)

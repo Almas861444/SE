@@ -1,0 +1,5 @@
+// Single source of truth for global constants (previously hard-coded in several places).
+export const NOW_HHMM = '09:00';            // fixed "current time" required by the scenario
+export const MAX_DURATION_MINUTES = 120;    // AC2
+export const TIMELINE_START_HHMM = '08:00'; // timeline strip shown in the UI only
+export const TIMELINE_END_HHMM = '20:00';

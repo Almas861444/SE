@@ -1,0 +1,56 @@
+// Room catalog -- DATA ONLY (fictional). No logic lives here.
+// Every record is deep-frozen so booking data is immutable (AC5).
+
+function deepFreeze(value) {
+  if (value && typeof value === 'object' && !Object.isFrozen(value)) {
+    Object.freeze(value);
+    Object.values(value).forEach(deepFreeze);
+  }
+  return value;
+}
+
+export const ROOMS = deepFreeze([
+  {
+    id: 'R101', name: 'Aurora Lab', capacity: 30,
+    equipment: ['computers', 'projector', 'whiteboard'],
+    blocked: false,
+    bookings: [
+      { start: '10:00', end: '11:00', title: 'Algorithms lecture' },
+      { start: '13:00', end: '14:30', title: 'Study group' },
+      { start: '15:00', end: '16:00', title: 'Robotics club' }
+    ]
+  },
+  {
+    id: 'R102', name: 'Birch Seminar Room', capacity: 12,
+    equipment: ['video-conference', 'whiteboard'],
+    blocked: false,
+    bookings: [
+      { start: '09:30', end: '10:30', title: 'Thesis consultation' },
+      { start: '12:00', end: '13:00', title: 'Faculty meeting' }
+    ]
+  },
+  {
+    id: 'R201', name: 'Cedar Lecture Hall', capacity: 120,
+    equipment: ['microphone', 'projector', 'video-conference', 'whiteboard'],
+    blocked: false,
+    bookings: [
+      { start: '11:00', end: '12:30', title: 'Databases lecture' },
+      { start: '15:00', end: '16:00', title: 'Guest talk' }
+    ]
+  },
+  {
+    id: 'R202', name: 'Delta Studio', capacity: 20,
+    equipment: ['computers', 'projector', 'whiteboard'],
+    blocked: true, // closed for maintenance
+    bookings: []
+  },
+  {
+    id: 'R301', name: 'Echo Huddle', capacity: 6,
+    equipment: ['whiteboard'],
+    blocked: false,
+    bookings: [
+      { start: '09:00', end: '10:00', title: 'Project sync' },
+      { start: '10:00', end: '11:00', title: 'Design review' }
+    ]
+  }
+]);

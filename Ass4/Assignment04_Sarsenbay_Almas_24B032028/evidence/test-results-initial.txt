@@ -1,0 +1,59 @@
+$ npm run test:initial
+# date: 2026-11-08 14:52 UTC  node: v22.23.4
+
+> smart-campus-room-checker@2.0.0 test:initial
+> node --test tests/initial.ac.test.js
+
+TAP version 13
+# Subtest: v1 AC1: malformed time is rejected
+ok 1 - v1 AC1: malformed time is rejected
+  ---
+  duration_ms: 1.68882
+  type: 'test'
+  ...
+# Subtest: v1 AC1: end must be after start
+ok 2 - v1 AC1: end must be after start
+  ---
+  duration_ms: 0.536539
+  type: 'test'
+  ...
+# Subtest: v1 AC1: start earlier than fixed current time 09:00 is rejected, 09:00 is accepted
+ok 3 - v1 AC1: start earlier than fixed current time 09:00 is rejected, 09:00 is accepted
+  ---
+  duration_ms: 0.326472
+  type: 'test'
+  ...
+# Subtest: v1 AC2: exactly 120 minutes is accepted, 121 minutes is rejected
+ok 4 - v1 AC2: exactly 120 minutes is accepted, 121 minutes is rejected
+  ---
+  duration_ms: 0.368206
+  type: 'test'
+  ...
+# Subtest: v1 AC3: blocked room is never available
+ok 5 - v1 AC3: blocked room is never available
+  ---
+  duration_ms: 0.595692
+  type: 'test'
+  ...
+# Subtest: v1 AC4: overlapping intervals conflict, touching intervals do not
+ok 6 - v1 AC4: overlapping intervals conflict, touching intervals do not
+  ---
+  duration_ms: 0.385776
+  type: 'test'
+  ...
+# Subtest: v1 AC5: booking data is immutable and checks do not change it
+ok 7 - v1 AC5: booking data is immutable and checks do not change it
+  ---
+  duration_ms: 0.90024
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 115.848927
+# exit code: 0

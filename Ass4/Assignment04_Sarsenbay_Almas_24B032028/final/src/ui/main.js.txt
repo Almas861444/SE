@@ -1,0 +1,40 @@
+// DOM wiring only: reads events -> dispatches actions -> writes rendered strings.
+import { ROOMS } from '../data/rooms.js';
+import { createStore } from './store.js';
+import { renderRequirementError, renderRoomList, renderResult, renderBookings, renderTimeline, renderEquipmentOptions } from './render.js';
+
+const $ = (id) => document.getElementById(id);
+const store = createStore(ROOMS);
+
+function render() {
+  const vm = store.getViewModel();
+  const hadRoomFocus = document.activeElement?.name === 'room';
+  $('req-error').innerHTML = renderRequirementError(vm);
+  $('rooms').innerHTML = renderRoomList(vm);
+  $('result').innerHTML = renderResult(vm);
+  $('bookings').innerHTML = renderBookings(vm);
+  $('timeline').innerHTML = renderTimeline(vm);
+  $('room-count').textContent = `${vm.rooms.length} of ${vm.totalRooms} rooms`;
+  if (hadRoomFocus) document.querySelector('input[name="room"]:checked')?.focus();
+}
+
+function init() {
+  const vm = store.getViewModel();
+  $('now').textContent = vm.now;
+  $('equipment').innerHTML = renderEquipmentOptions(vm);
+  $('attendees').addEventListener('input', (e) => store.dispatch({ type: 'setAttendees', value: e.target.value }));
+  $('equipment').addEventListener('change', (e) => store.dispatch({ type: 'toggleEquipment', item: e.target.value, on: e.target.checked }));
+  $('rooms').addEventListener('change', (e) => store.dispatch({ type: 'selectRoom', id: e.target.value }));
+  $('start').addEventListener('input', (e) => store.dispatch({ type: 'setStart', value: e.target.value.trim() }));
+  $('end').addEventListener('input', (e) => store.dispatch({ type: 'setEnd', value: e.target.value.trim() }));
+  $('form').addEventListener('submit', (e) => { e.preventDefault(); store.dispatch({ type: 'check' }); });
+  $('clear').addEventListener('click', () => {
+    store.dispatch({ type: 'reset' });
+    $('attendees').value = ''; $('start').value = ''; $('end').value = '';
+    document.querySelectorAll('input[name="equipment"]').forEach((c) => { c.checked = false; });
+  });
+  store.subscribe(render);
+  render();
+}
+
+init();

@@ -1,0 +1,16 @@
+// The ONLY place where "HH:MM" strings are parsed or formatted.
+const HHMM = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+/** "HH:MM" -> minutes since midnight, or null when the text is not a valid 24h time. */
+export function parseTime(text) {
+  if (typeof text !== 'string') return null;
+  const m = HHMM.exec(text);
+  return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+}
+
+/** minutes since midnight -> "HH:MM". */
+export function formatTime(minutes) {
+  const h = String(Math.floor(minutes / 60)).padStart(2, '0');
+  const m = String(minutes % 60).padStart(2, '0');
+  return `${h}:${m}`;
+}

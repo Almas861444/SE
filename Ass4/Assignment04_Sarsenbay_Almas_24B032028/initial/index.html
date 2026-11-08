@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Room Availability Checker v1</title>
+<style>
+body{font-family:Arial,sans-serif;max-width:480px;margin:1rem auto;padding:0 1rem}
+input,button{font-size:1rem;padding:.5rem;margin:.25rem 0;width:100%;box-sizing:border-box}
+.box{padding:.75rem;border-radius:6px;margin-top:.5rem}.ok{background:#d4f5dd}.bad{background:#fadada}.warn{background:#fdf0c9}.error{color:#b00020}
+</style></head>
+<body>
+<h1>Aurora Lab (R101)</h1>
+<p>Current time (fixed): 09:00</p>
+<h2>Bookings</h2><ul id="bookings"></ul>
+<label>Start <input id="start" placeholder="HH:MM"></label>
+<label>End <input id="end" placeholder="HH:MM"></label>
+<div id="hint"></div>
+<button id="check">Check availability</button>
+<div id="result" aria-live="polite"></div>
+<script src="app.js"></script>
+</body></html>

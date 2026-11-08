@@ -1,0 +1,26 @@
+$ node scripts/metrics.mjs
+# date: 2026-11-08 14:52 UTC  node: v22.23.4
+Measure                                                                         v1  v2
+Time-parsing implementations (v1: split(':') sites; v2: HHMM.exec sites)         9   1
+Time-format validation regex copies                                              2   1
+Literal 120 (max duration) in rule code                                          4   1
+Copies of message "End time must be after the start time."                       2   1
+Copies of message "Enter start and end times in HH:MM format"                    2   1
+Copies of message "A booking can last at most"                                   2   1
+Result/error markup templates (v1: box/error divs; v2: result template)          7   1
+
+Duplicated logic locations (copies beyond the first, summed over the 7 measures): v1 = 21, v2 = 0, removed = 21
+
+Code structure
+v1: 1 source file, 101 code lines (rules + data + DOM in one file)
+v2: final/src/config.js                  4 code lines
+v2: final/src/core/availability.js      66 code lines
+v2: final/src/core/filter.js            24 code lines
+v2: final/src/core/time.js              13 code lines
+v2: final/src/data/rooms.js             52 code lines
+v2: final/src/ui/main.js                35 code lines
+v2: final/src/ui/render.js              58 code lines
+v2: final/src/ui/store.js              119 code lines
+v2: 8 source modules, 371 code lines in total (incl. data/rooms.js)
+DOM access (document.*) in v1 file: 10 | in v2 modules outside ui/main.js: 0
+# exit code: 0

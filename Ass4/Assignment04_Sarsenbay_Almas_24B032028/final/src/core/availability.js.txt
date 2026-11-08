@@ -1,0 +1,73 @@
+// Booking / availability rules (AC1-AC5). Pure functions, no DOM, no catalog access.
+import { parseTime, formatTime } from './time.js';
+import { NOW_HHMM, MAX_DURATION_MINUTES } from '../config.js';
+
+export const STATUS = Object.freeze({
+  AVAILABLE: 'AVAILABLE',
+  INVALID: 'INVALID',
+  TOO_LONG: 'TOO_LONG',
+  BLOCKED: 'BLOCKED',
+  CONFLICT: 'CONFLICT'
+});
+
+/** Half-open interval overlap: touching intervals (end === start) do NOT overlap (AC4). */
+export function intervalsOverlap(aStart, aEnd, bStart, bEnd) {
+  return aStart < bEnd && bStart < aEnd;
+}
+
+/**
+ * AC1 validation. Returns { valid:true, start, end } (minutes) or { valid:false, message }.
+ */
+export function validateRequest(request, nowHHMM = NOW_HHMM) {
+  const start = parseTime(request?.start);
+  const end = parseTime(request?.end);
+  if (start === null || end === null) {
+    return { valid: false, message: 'Enter start and end times in HH:MM format (for example 10:30).' };
+  }
+  if (end <= start) {
+    return { valid: false, message: 'End time must be after the start time.' };
+  }
+  if (start < parseTime(nowHHMM)) {
+    return { valid: false, message: `Start time cannot be earlier than the current time (${nowHHMM}).` };
+  }
+  return { valid: true, start, end };
+}
+
+/** Booking that overlaps [start,end) in this room, or undefined. Uses ONLY the given room's bookings. */
+export function findConflict(room, start, end) {
+  return room.bookings.find((b) =>
+    intervalsOverlap(start, end, parseTime(b.start), parseTime(b.end)));
+}
+
+/**
+ * Full availability check for ONE room.
+ * Order of rules: AC1 invalid -> AC2 too long -> AC3 blocked -> AC4 conflict -> available.
+ * Never mutates the room or its bookings (AC5).
+ */
+export function checkAvailability(room, request, nowHHMM = NOW_HHMM) {
+  const v = validateRequest(request, nowHHMM);
+  if (!v.valid) return { status: STATUS.INVALID, message: v.message };
+
+  const minutes = v.end - v.start;
+  if (minutes > MAX_DURATION_MINUTES) {
+    return {
+      status: STATUS.TOO_LONG,
+      message: `A booking can last at most ${MAX_DURATION_MINUTES} minutes. You requested ${minutes} minutes.`
+    };
+  }
+  if (room.blocked) {
+    return { status: STATUS.BLOCKED, message: `${room.name} is blocked and cannot be booked.` };
+  }
+  const conflict = findConflict(room, v.start, v.end);
+  if (conflict) {
+    return {
+      status: STATUS.CONFLICT,
+      message: `Not available: overlaps with "${conflict.title}" (${conflict.start}\u2013${conflict.end}).`,
+      conflict
+    };
+  }
+  return {
+    status: STATUS.AVAILABLE,
+    message: `Available: ${room.name} is free from ${formatTime(v.start)} to ${formatTime(v.end)}.`
+  };
+}

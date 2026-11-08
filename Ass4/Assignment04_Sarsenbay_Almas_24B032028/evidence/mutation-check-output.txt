@@ -1,0 +1,18 @@
+$ python3 scripts/mutation_check.py
+# date: 2026-11-08 14:52 UTC  node: v22.23.4
+mutant                                                     tests  pass  fail  result
+M01 touching treated as overlap (AC4)                         48    39     9  KILLED
+M02 max duration 121 instead of 120 (AC2)                     48    45     3  KILLED
+M03 end == start allowed (AC1)                                48    46     2  KILLED
+M04 start == now rejected (AC1)                               48    42     6  KILLED
+M05 blocked check removed (AC3/F3)                            48    43     5  KILLED
+M06 capacity '>' instead of '>=' (F1)                         48    47     1  KILLED
+M07 equipment ANY instead of ALL (F2)                         48    35    13  KILLED
+M08 empty attendees treated as invalid (F1)                   48    47     1  KILLED
+M09 room switch clears result (F5)                            48    46     2  KILLED
+M10 stale selection kept after filter change (F5)             48    47     1  KILLED
+M11 HTML escaping disabled (security)                         48    47     1  KILLED
+M12 catalog no longer frozen (AC5)                            48    47     1  KILLED
+
+Mutation score: 12/12 mutants killed
+# exit code: 0

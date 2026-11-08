@@ -1,0 +1,289 @@
+const fs = require('fs');
+const {
+  Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, WidthType, ShadingType,
+  ImageRun, AlignmentType, LevelFormat, BorderStyle, Footer, PageNumber, PageBreak
+} = require('docx');
+
+const FONT = 'Arial';
+const W = 9638; // content width (A4, 2 cm margins)
+const border = { style: BorderStyle.SINGLE, size: 4, color: 'B8C4C2' };
+const borders = { top: border, bottom: border, left: border, right: border };
+
+// inline parser: **bold**, `code`
+function runs(text, base = {}) {
+  const out = [];
+  text.split(/(\*\*[^*]+\*\*|`[^`]+`)/).forEach((part) => {
+    if (!part) return;
+    if (part.startsWith('**')) out.push(new TextRun({ text: part.slice(2, -2), bold: true, font: FONT, size: 21, ...base }));
+    else if (part.startsWith('`')) out.push(new TextRun({ text: part.slice(1, -1), font: 'Consolas', size: 19, ...base }));
+    else out.push(new TextRun({ text: part, font: FONT, size: 21, ...base }));
+  });
+  return out;
+}
+const P = (text, o = {}) => new Paragraph({ children: runs(text, o.run), spacing: { after: 100, line: 276 }, alignment: o.align, keepNext: o.keepNext });
+const H1 = (t) => new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun({ text: t, font: FONT })] });
+const H2 = (t) => new Paragraph({ heading: HeadingLevel.HEADING_2, children: [new TextRun({ text: t, font: FONT })] });
+const B = (text) => new Paragraph({ numbering: { reference: 'bul', level: 0 }, children: runs(text), spacing: { after: 60, line: 276 } });
+const N = (text) => new Paragraph({ numbering: { reference: 'num', level: 0 }, children: runs(text), spacing: { after: 60, line: 276 } });
+const code = (lines) => lines.map((l) => new Paragraph({
+  children: [new TextRun({ text: l || ' ', font: 'Consolas', size: 17 })],
+  shading: { type: ShadingType.CLEAR, fill: 'F1F4F3' }, spacing: { after: 0, line: 240 }, indent: { left: 120 }
+}));
+const cell = (text, width, o = {}) => new TableCell({
+  borders, width: { size: width, type: WidthType.DXA },
+  shading: o.fill ? { type: ShadingType.CLEAR, fill: o.fill } : undefined,
+  margins: { top: 60, bottom: 60, left: 90, right: 90 },
+  children: String(text).split('\n').map((line) => new Paragraph({ children: runs(line, { size: o.size || 18, bold: o.bold }), spacing: { after: 20, line: 250 } }))
+});
+function table(headers, rows, widths, o = {}) {
+  const total = widths.reduce((a, b) => a + b, 0);
+  return new Table({
+    width: { size: total, type: WidthType.DXA }, columnWidths: widths,
+    rows: [
+      new TableRow({ tableHeader: true, children: headers.map((h, i) => cell(h, widths[i], { fill: 'D5E6E3', bold: true, size: o.size })) }),
+      ...rows.map((r) => new TableRow({ cantSplit: true, children: r.map((c, i) => cell(c, widths[i], { size: o.size })) }))
+    ]
+  });
+}
+const gap = () => new Paragraph({ children: [], spacing: { after: 120 } });
+function img(file, width, caption) {
+  const dims = { 'before.png': [806, 737], 'after.png': [1684, 838], '01': [1100, 900], '02': [1100, 900], '03': [1100, 900], '04': [375, 1423] };
+  const key = file.includes('screenshots') ? file.split('/').pop().slice(0, 2) : file;
+  const [w, h] = dims[key];
+  const out = [new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 80, after: 40 }, keepNext: true,
+    children: [new ImageRun({ type: 'png', data: fs.readFileSync(file), transformation: { width, height: Math.round(width * h / w) }, altText: { title: caption, description: caption, name: caption } })] })];
+  out.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 160 }, children: [new TextRun({ text: caption, italics: true, size: 18, font: FONT, color: '4D6268' })] }));
+  return out;
+}
+
+
+function imgCell(file, width, caption, cw) {
+  const dims = { '03': [1100, 900], '04': [375, 1423] };
+  const [w, h] = dims[file.split('/').pop().slice(0, 2)];
+  return new TableCell({ width: { size: cw, type: WidthType.DXA }, borders: { top: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }, bottom: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }, left: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }, right: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' } },
+    children: [
+      new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 60, after: 40 }, children: [new ImageRun({ type: 'png', data: fs.readFileSync(file), transformation: { width, height: Math.round(width * h / w) }, altText: { title: caption, description: caption, name: caption } })] }),
+      new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 100 }, children: [new TextRun({ text: caption, italics: true, size: 17, font: FONT, color: '4D6268' })] })
+    ] });
+}
+const imgPair = () => new Table({ width: { size: W, type: WidthType.DXA }, columnWidths: [5400, 4238], rows: [new TableRow({ cantSplit: true, children: [
+  imgCell('../evidence/screenshots/03-empty-state.png', 340, 'Figure 3 — Empty state when 500 attendees are requested (F4).', 5400),
+  imgCell('../evidence/screenshots/04-mobile-375px.png', 170, 'Figure 4 — 375 px phone layout: single column, no horizontal scrolling.', 4238)
+] })] });
+
+const reflection = [
+  'Context. I gave the assistant (Claude) the full assignment brief with AC1–AC6, F1–F5 and the constraints (no login, payments, APIs or database; fictional data only), a repository map of the baseline (one HTML file and a 101-line app.js) and the deliverables list. The assistant followed the suggested workflow: baseline first, plan before code, one change at a time, tests and diff review after each step.',
+  'Useful and incorrect suggestions. Useful: the layered split (data, rules, filter, store, render), the half-open interval rule that makes touching bookings legal, and deriving the result from state so that switching rooms refreshes it automatically. Incorrect or weak: the first AC5 baseline test failed only because the test file ran in non-strict mode and silently ignored writes to frozen objects; the first test command (a directory path) did not work on Node 22; one browser check contained an assertion that could never fail; the first UI repeated the same wording in title and message. The idea of hiding blocked rooms was modified: they stay visible with a Blocked badge.',
+  'Verification. Everything is backed by executed commands: 48/48 Node tests, 17/17 Chromium checks, v1-versus-v2 comparison on 24 scenarios, grep-based duplication counts, and screenshots at 1100 px and 375 px.',
+  'Tests and decisions. Twelve injected bugs (mutation check) first left one survivor, a rule treating empty attendees as an error. That exposed a missing assertion; it was added and all 12 are now caught. The regression tests made the refactoring safe because behaviour stayed identical.',
+  'Next. Add dates and a real booking flow, persist data, run a screen-reader accessibility audit, and add property-based tests for interval logic.'
+];
+const wc = reflection.join(' ').split(/\s+/).length;
+console.log('Reflection words:', wc);
+
+const children = [];
+// ---------- Title ----------
+children.push(
+  new Paragraph({ heading: HeadingLevel.TITLE, children: [new TextRun({ text: 'Smart Campus Room Availability Checker', font: FONT })] }),
+  new Paragraph({ spacing: { after: 160 }, children: [new TextRun({ text: 'Analysis, refactoring and quality report', font: FONT, size: 28, color: '4D6268' })] }),
+  table(['Field', 'Value'], [
+    ['Course / assignment', 'Software Engineering — Assignment #04 (AI-assisted software evolution, refactoring and quality improvement)'],
+    ['Student', 'Sarsenbay Almas'], ['Student ID', '24B032028'], ['Group', 'Wednesday 08:00–11:00'],
+    ['AI assistant used', 'Claude (Anthropic), Claude Sonnet 5.5, claude.ai — 8 November 2026'],
+    ['Repository', 'Git tags `v1-initial` (baseline) and `v2-final` (submission); folders `initial/` and `final/`'],
+    ['Deliverables', 'source (initial + final), README, tests + recorded results (`evidence/`), this report with diagrams, AI evidence appendix (Appendix A)']
+  ], [2400, 7238]),
+  gap(),
+  P('**Summary.** The single-room prototype (v1, one 101-line file) was analysed, then extended to a five-room catalog with capacity and equipment filtering and refactored into eight single-purpose modules. All original criteria AC1–AC6 are preserved (proved by running the same 24 scenarios on v1 and v2 and getting identical status and message). The repository has 48 Node tests (48 passed), 17 real-browser checks (17 passed) and a mutation check that catches 12 of 12 injected bugs. 21 duplicated-logic locations were removed.')
+);
+
+// ---------- Task 1 ----------
+children.push(H1('Task 1 — Codebase analysis'));
+children.push(H2('1.1 Context given to the AI assistant'));
+children.push(P('**Repository map (baseline v1):**', { keepNext: true }));
+children.push(...code([
+  'initial/index.html            page + inline CSS, loads app.js',
+  'initial/app.js (101 lines)    data (ROOM, BOOKINGS, CURRENT_TIME) + rules (checkAvailability,',
+  '                              describeBooking) + DOM handlers (onTimeInput, onCheckClick, showBookings)',
+  'tests/initial.ac.test.js      7 baseline tests for AC1-AC5 (node:test)'
+]), gap());
+children.push(P('**Acceptance criteria:** AC1 valid time (HH:MM, end after start, start not before the fixed current time 09:00); AC2 maximum 120 minutes; AC3 blocked room; AC4 overlap rules (touching is allowed); AC5 immutable booking data; AC6 clear, responsive feedback. **New requirements:** F1 capacity ≥ attendees; F2 ALL selected equipment; F3 blocked room never available; F4 empty state; F5 room switch refreshes the result. **Constraints:** no login, payments, live APIs or database; fictional data; fixed current time; at least four rooms.'));
+children.push(H2('1.2 Maintainability risks (with file / function references)'));
+children.push(table(['#', 'Risk', 'Evidence (initial/app.js)', 'Consequence'], [
+  ['R1', 'Duplicated validation that has already drifted apart', '`checkAvailability()` lines 16–35 (copy A) and `onTimeInput()` lines 60–84 (copy B). Copy B has no "start earlier than current time" check; copy A does.', 'Live hint says nothing is wrong for 08:30–09:30, then the button reports an error. Every rule change must be made twice.'],
+  ['R2', 'Time parsing written 9 times', '`split(\':\')` at lines 22, 24, 26, 41, 43 (`checkAvailability`), 53, 54 (`describeBooking`), 71, 73 (`onTimeInput`).', 'A bug or format change must be fixed in 9 places.'],
+  ['R3', 'Magic number and repeated messages', 'Literal `120` at lines 34, 35, 79, 80; the same three error messages appear twice (lines 18/68, 31/76, 35/80).', 'Changing the maximum duration silently desynchronises logic and text.'],
+  ['R4', 'Rules, data and DOM mixed; 7 markup templates; unescaped `innerHTML`', '`onCheckClick()` lines 86–98 builds four HTML boxes; `onTimeInput()` three more; `result.message` is concatenated into `innerHTML` unescaped.', 'Rules cannot be tested without a DOM; any text with markup characters would be interpreted as HTML.'],
+  ['R5', 'Single hard-coded room in mutable globals', '`ROOM`, `BOOKINGS` (lines 7–14) are read directly by `checkAvailability()`; tests must flip `ROOM.blocked`.', 'Cannot support a catalog; risk of reading the wrong room\'s data once there are several rooms.']
+], [450, 2100, 3900, 3188]));
+children.push(gap(), H2('1.3 Prioritised improvement plan (made before editing code)'));
+[
+  '**P1 (high, low risk):** one time parser and shared constants — removes R2 and R3, protected by the existing regression tests.',
+  '**P2 (high):** turn the rules into pure functions that receive the room as a parameter — fixes R1 (single validation) and R5, and is the prerequisite for a catalog.',
+  '**P3 (high):** add the catalog and the filters (F1–F4) on top of the clean core.',
+  '**P4 (medium):** separate state/presentation logic from the DOM and keep one escaped result template — fixes R4 and implements F5.',
+  '**P5 (medium):** tests first as characterization (v1 vs v2 on identical inputs), then F1–F5, boundaries, integration, browser check, mutation check.',
+  '**P6 (low):** README, evidence files, report.'
+].forEach((t) => children.push(B(t)));
+children.push(H2('1.4 One AI suggestion that was modified'));
+children.push(P('The assistant\'s first design hid blocked rooms from the room list because "a blocked room cannot be available". This was **modified**: blocked rooms that satisfy the capacity and equipment requirements stay visible with a Blocked badge and can be selected, so the user gets the explanation "Delta Studio is blocked and cannot be booked" instead of a room silently disappearing. F3 is still guaranteed by `checkAvailability()` and tested for every 15-minute interval (test "F3: a blocked room is never AVAILABLE for any valid interval"). A second suggestion — using jsdom for UI tests — was **rejected**: it adds a dependency, and the same behaviour is tested through the pure `store.js` view model, `render.js` strings and a real Chromium run.'));
+
+// ---------- Task 2 ----------
+children.push(H1('Task 2 — Feature extension'));
+children.push(P('The prototype now works with a catalog of five fictional rooms (`final/src/data/rooms.js`). The original time and overlap validation is unchanged (proved in Task 4).'));
+children.push(table(['ID', 'Name', 'Seats', 'Equipment', 'Blocked', 'Bookings'], [
+  ['R101', 'Aurora Lab', '30', 'computers, projector, whiteboard', 'no', '10:00–11:00, 13:00–14:30, 15:00–16:00'],
+  ['R102', 'Birch Seminar Room', '12', 'video-conference, whiteboard', 'no', '09:30–10:30, 12:00–13:00'],
+  ['R201', 'Cedar Lecture Hall', '120', 'microphone, projector, video-conference, whiteboard', 'no', '11:00–12:30, 15:00–16:00'],
+  ['R202', 'Delta Studio', '20', 'computers, projector, whiteboard', 'YES (maintenance)', '—'],
+  ['R301', 'Echo Huddle', '6', 'whiteboard', 'no', '09:00–10:00, 10:00–11:00']
+], [650, 1750, 800, 2750, 1200, 2488], { size: 17 }));
+children.push(gap(), P('**How the requirements are met:** F1/F2 in `core/filter.js` (`filterRooms`); F3 in `core/availability.js` (blocked rule); F4 in `ui/render.js` (`renderRoomList` empty state); F5 in `ui/store.js` — the result is **derived** from state (`buildViewModel`), so selecting another room automatically re-evaluates the same times against that room\'s own bookings.'));
+children.push(P('**Demonstration** (actual output of `npm run demo`, file `evidence/demo-output.txt`):', { keepNext: true }));
+children.push(table(['Scenario', 'Input', 'Result'], [
+  ['Successful filtering', '10 attendees + projector', 'R101, R201, R202'],
+  ['Successful filtering (combined)', '25 attendees + projector + video-conference', 'R201'],
+  ['Unsuccessful filtering (F4)', '500 attendees', 'no rooms → empty state "No rooms match"'],
+  ['Room switching, same time 10:30–11:30', 'R101 → R102 → R201 → R202 → R301', 'CONFLICT (Algorithms lecture) → AVAILABLE → CONFLICT (Databases lecture) → BLOCKED → CONFLICT (Design review)'],
+  ['Availability on R101', '11:00–12:00 / 09:00–10:00 (touching)', 'AVAILABLE / AVAILABLE'],
+  ['Availability on R101', '10:30–11:30 (overlap)', 'CONFLICT'],
+  ['Availability on R101', '11:00–13:00 / 11:00–13:01', 'AVAILABLE (120 min) / TOO_LONG (121 min)'],
+  ['Availability on R101', '08:30–09:30 / 9:30–10:30', 'INVALID (before 09:00) / INVALID (format)']
+], [2600, 3200, 3838], { size: 17 }));
+children.push(gap(), P('**Screenshots** from the real-browser check (`evidence/screenshots/`): unsuccessful check, room switch refresh, empty state and a 375 px phone layout.', { keepNext: true }));
+children.push(...img('../evidence/screenshots/01-conflict-desktop.png', 400, 'Figure 1 — Unsuccessful check on Aurora Lab (10:30–11:30 overlaps the 10:00–11:00 lecture); timeline shows the request in red.'));
+children.push(...img('../evidence/screenshots/02-available-after-room-switch.png', 400, 'Figure 2 — Switching to Birch Seminar Room refreshes the result for the same times: free.'));
+children.push(imgPair());
+
+// ---------- Task 3 ----------
+children.push(H1('Task 3 — Refactoring'));
+children.push(H2('3.1 Before'));
+children.push(...img('before.png', 360, 'Figure 5 — Before: one file mixes data, rules and DOM; validation exists twice.'));
+children.push(H2('3.2 After'));
+children.push(...img('after.png', 600, 'Figure 6 — After: UI → domain rules → data, with shared config; only ui/main.js touches the DOM.'));
+children.push(table(['Module', 'Single responsibility', 'Code lines'], [
+  ['`config.js`', 'Fixed current time 09:00, 120-minute maximum, timeline range', '4'],
+  ['`data/rooms.js`', 'Fictional catalog, deep-frozen (AC5). Data only.', '52'],
+  ['`core/time.js`', 'The only HH:MM parser and formatter', '13'],
+  ['`core/availability.js`', 'AC1–AC4 rules; takes a room as a parameter, never mutates it', '66'],
+  ['`core/filter.js`', 'F1/F2 requirements parsing and filtering', '24'],
+  ['`ui/store.js`', 'State, reducer, derived view model (F4, F5) — no DOM', '119'],
+  ['`ui/render.js`', 'View model → escaped HTML; one result template', '58'],
+  ['`ui/main.js`', 'DOM events and writing HTML — the only file using `document`', '35']
+], [2300, 6338, 1000], { size: 17 }));
+children.push(gap(), H2('3.3 Design decisions (justified)'));
+[
+  '**D1 — Pure rules that receive the room as an argument** (`checkAvailability(room, request, now)`) instead of reading globals. Why: it makes cross-room data leakage impossible by construction (the function only sees the room it is given), makes AC5 testable (the catalog is passed in and compared before/after), and removes the need to mutate `ROOM` in tests.',
+  '**D2 — The result is derived, not stored.** `buildViewModel` computes the result from (selected room, times, checked flag) on every render. Why: F5 then holds automatically — a room switch cannot show a stale answer — and the whole behaviour is testable in plain Node without a browser. Editing a time resets the `checked` flag, so an old result is never shown for new times.',
+  '**D3 — One parser, one constants file, one result template.** `parseTime`, `config.js` and `renderResult` replace 9 parsing sites, 4 literals of 120 and 7 markup templates. Why: a single place to change and to test; this is what removed the drift between validation copy A and copy B.',
+  '**D4 — Rendering returns strings and escapes every dynamic value.** Why: the HTML can be asserted in unit tests, and catalog or message text containing `<` or `&` can no longer inject markup (tested with a hostile room name).'
+].forEach((t) => children.push(B(t)));
+children.push(P('**Behaviour preserved:** `tests/regression.initial-vs-final.test.mjs` runs 20 time scenarios plus 4 blocked-room scenarios against v1 and v2 and requires identical status **and** message — 2/2 tests pass.'));
+
+// ---------- Task 4 ----------
+children.push(H1('Task 4 — Automated testing'));
+children.push(P('Runner: Node\'s built-in `node:test` (Node v22.23.4, no dependencies). Actual commands and results are stored unedited in `evidence/test-results-*.txt`.'));
+children.push(table(['Command', 'Scope', 'Result'], [
+  ['`npm run test:initial`', 'v1 baseline AC1–AC5', '7 tests, 7 passed, 0 failed'],
+  ['`npm run test:final`', 'v2 AC1–AC6 regression, F1–F5, integration / UI behaviour', '39 tests, 39 passed, 0 failed'],
+  ['`npm run test:regression`', 'v1 vs v2, same inputs, identical status + message', '2 tests (24 scenarios), 2 passed'],
+  ['`npm test`', 'everything above', '**48 tests, 48 passed, 0 failed**'],
+  ['`python3 tests/e2e/ui_check.py`', 'real Chromium (Playwright), desktop 1100 px and phone 375 px', '17 checks, 17 passed'],
+  ['`python3 scripts/mutation_check.py`', '12 deliberately injected bugs, one at a time, in a copy of the code', '12 of 12 caught (see Task 5)']
+], [3000, 4038, 2600], { size: 17 }));
+children.push(gap(), H2('Traceability: requirement → tests'));
+children.push(table(['Requirement', 'Covered by (file: test)'], [
+  ['AC1 valid time', 'final.availability: malformed/missing times; end strictly after start; **start 08:59 vs 09:00 boundary**; parseTime/formatTime'],
+  ['AC2 120-minute maximum', 'final.availability: **exactly 120 allowed vs 121 TOO_LONG**; browser E9/E10'],
+  ['AC3 blocked room', 'final.availability: blocked even when time is free; final.filter: never AVAILABLE for any valid interval (loop over 15-minute starts and 3 lengths)'],
+  ['AC4 overlap rules', 'final.availability: partial / inner / enclosing / identical / 1-minute overlaps; **touching vs overlapping** (`intervalsOverlap(540,600,600,660)=false`, `(540,601,600,660)=true`); back-to-back bookings'],
+  ['AC5 immutable data', 'final.availability: deep-freeze check, mutation attempts throw, 300+ checks leave catalog byte-identical; final.integration: store never mutates catalog'],
+  ['AC6 clear feedback', 'final.availability: message content; index.html viewport + aria-live; final.integration: result styles; browser E5–E11, E15–E16'],
+  ['F1 capacity', 'final.filter: **exact capacity 30 matches / 31 does not**, 120 vs 121, empty and invalid attendee values'],
+  ['F2 equipment ALL', 'final.filter: two-item filter → only R201, unknown item → none, combined with F1'],
+  ['F3 blocked', 'final.filter: loop test; blocked room stays listed but flagged; browser E4, E7'],
+  ['F4 empty state', 'final.integration: message with requirement text, recovery after relaxing; browser E12–E13'],
+  ['F5 room switching', 'final.integration: R101→R102→R201→R202 refresh, no cross-room leakage in both directions, stale-result and dropped-selection cases; browser E6']
+], [2300, 7338], { size: 17 }));
+children.push(gap(), P('**Boundary cases required by the brief:** 120 vs 121 minutes ✔; touching vs overlapping intervals ✔; exact capacity vs insufficient capacity ✔. **Integration / UI behaviour:** 14 store + render tests (full user flow) and 17 real-browser checks ✔.'));
+
+// ---------- Task 5 ----------
+children.push(H1('Task 5 — Quality evaluation'));
+children.push(table(['Measure', 'Original (v1)', 'Final (v2)', 'How it was obtained'], [
+  ['Automated tests passed / total', '7 / 7 (AC1–AC5 only; none for filtering — feature did not exist)', '39 / 39 on the v2 suite; 48 / 48 for the whole repository incl. 2 v1-vs-v2 tests; plus 17 / 17 browser checks', '`npm run test:initial`, `npm run test:final`, `npm test`, `python3 tests/e2e/ui_check.py` — outputs in `evidence/`'],
+  ['Duplicated logic locations removed', '21 extra copies across 7 measures', '0', '`node scripts/metrics.mjs`: after stripping comments it counts, per measure, the occurrences of a pattern; "extra copies" = occurrences − 1. Result 21 − 0 = **21 removed**'],
+  ['  of which: time parsing', '9 sites (`split(\':\')`)', '1 (`HHMM.exec` in `time.js`)', 'same script'],
+  ['  of which: result/error markup', '7 templates', '1', 'same script'],
+  ['  of which: literal 120', '4', '1 (`config.js`)', 'same script (data file excluded because `capacity: 120` is a data value)'],
+  ['Code structure', '1 file, 101 code lines; data + rules + DOM mixed; 10 `document.` accesses', '8 modules, 371 code lines (52 are catalog data); 0 `document.` accesses outside `ui/main.js`', '`node scripts/metrics.mjs` (counts non-blank, non-comment lines)'],
+  ['Mutation score', 'not measured', '12 / 12 injected bugs caught', '`python3 scripts/mutation_check.py` — the first run caught 11/12; the survivor led to a stronger test']
+], [2000, 2250, 2700, 2688], { size: 16 }));
+children.push(gap(), P('**Interpretation.** Total code grew from 101 to 371 lines because v2 adds a five-room catalog, filters, an empty state and a timeline; the useful comparison is that no module exceeds 119 lines, each has one responsibility, and the rules can be run without a browser.'));
+children.push(H2('Remaining limitations'));
+[
+  'Times only — there are no dates, no recurring bookings, and "now" is fixed at 09:00; a real system would need a calendar and time zones.',
+  'Data is in memory and read-only: the checker answers "is it free?" but does not create bookings, and nothing is persisted.',
+  'The duplication measure is a pattern-count heuristic chosen for known duplicate sites; it is not a general clone detector.',
+  'Accessibility was checked structurally (labels, `aria-live`, focus outlines) but not with a screen reader; the browser check ran only in Chromium.',
+  'Blocked rooms that match the requirements remain listed (a design choice, see 1.4); some users may prefer a "hide blocked" toggle.'
+].forEach((t) => children.push(B(t)));
+
+// ---------- Task 6 ----------
+children.push(H1('Task 6 — AI reflection'));
+reflection.forEach((t) => children.push(P(t)));
+children.push(P(`(${wc} words)`, { run: { italics: true, color: '4D6268', size: 18 } }));
+
+// ---------- Appendix A ----------
+children.push(new Paragraph({ children: [new PageBreak()] }));
+children.push(H1('Appendix A — AI evidence'));
+children.push(P('**Tool / model:** Claude (Anthropic), Claude Sonnet 5.5, claude.ai chat with code-execution sandbox. **Date:** 8 November 2026. **Initial prompt (summary):** the assignment PDF was attached with the request to complete all six tasks and deliver source code, tests, a report and a ZIP archive. All later prompts were internal work steps of the same session, summarised below.'));
+children.push(table(['#', 'Step / prompt summary', 'Output used', 'Problems found', 'Changes made', 'Verification'], [
+  ['1', 'Reconstruct a minimal v1 from the Assignment #03 description (single room, AC1–AC6) and write AC1–AC5 tests', '`initial/app.js`, `index.html`, `tests/initial.ac.test.js`', 'AC5 baseline test failed: CommonJS test file was not in strict mode, so writes to frozen objects were silently ignored (test bug, not code bug)', 'Added `\'use strict\'` to the test', '`npm run test:initial` → 7/7'],
+  ['2', 'Analyse the baseline: risks with file/function references, prioritised plan before editing', 'Section 1.2–1.3', 'Idea to hide blocked rooms (modified, see 1.4); jsdom for UI tests (rejected)', 'Blocked rooms stay visible with a badge; UI tested via view model + Chromium', '`grep -n` line numbers; `scripts/metrics.mjs`'],
+  ['3', 'Implement v2 modules one layer at a time (config/data → core → store/render → DOM)', '`final/src/**`', 'Shell brace expansion created a literal `{data,core,ui}` folder so first file writes failed (tooling error)', 'Folder removed, files re-created', '`ls -R final/src`, later `npm test`'],
+  ['4', 'Write regression, F1–F5, boundary and integration tests', '`tests/final.*.test.mjs`, `tests/regression…`', '`node --test tests/` failed on Node 22 (directory argument); mutation check showed a surviving mutant (empty attendees treated as error) = missing assertion', 'Scripts use a glob; assertion `error === null` added', '`npm test` → 48/48; `mutation_check.py` → 12/12'],
+  ['5', 'Build responsive UI and real-browser check; review screenshots', '`final/index.html`, `styles.css`, `tests/e2e/ui_check.py`', 'Screenshot review: result title and message repeated the same words; browser check E8 contained `or True` (could never fail)', 'Titles renamed ("Room is free", "Time slot taken"); E8 rewritten to assert real behaviour', '`python3 tests/e2e/ui_check.py` → 17/17; viewed 1100 px and 375 px screenshots'],
+  ['6', 'Metrics, diagrams, README, report', '`scripts/metrics.mjs`, `report/`', 'v2 has more code lines than v1 (features added) — reported honestly rather than hidden', 'Interpretation paragraph in Task 5', '`node scripts/metrics.mjs`; all numbers copied from `evidence/`']
+], [350, 1900, 1500, 2300, 1700, 1888], { size: 15 }));
+children.push(gap(), P('**Verification sources:** executed command output only (stored in `evidence/`), Chromium rendering, and the git history. No external web sources were used for numbers or claims.'));
+
+children.push(H1('Appendix B — Commands and actual results'));
+children.push(...code([
+  '$ npm test',
+  '# tests 48  # pass 48  # fail 0               (evidence/test-results-all.txt)',
+  '$ npm run test:initial       -> tests 7,  pass 7,  fail 0',
+  '$ npm run test:final         -> tests 39, pass 39, fail 0',
+  '$ npm run test:regression    -> tests 2,  pass 2,  fail 0',
+  '$ python3 tests/e2e/ui_check.py          -> Browser UI checks: 17/17 passed',
+  '$ python3 scripts/mutation_check.py      -> Mutation score: 12/12 mutants killed',
+  '$ node scripts/metrics.mjs               -> duplicated logic locations: v1 = 21, v2 = 0, removed = 21',
+  '$ node scripts/demo.mjs                  -> evidence/demo-output.txt',
+  '$ git log --oneline --decorate           -> see Appendix C'
+]));
+children.push(H1('Appendix C — Git history'));
+children.push(P('Commits that contain the code and tests are listed below. Tag `v2-final` marks the final commit, which adds the README, evidence files and this report on top of them.'));
+children.push(...code(fs.readFileSync('git-log.txt', 'utf8').trim().split('\n')));
+
+const doc = new Document({
+  creator: 'Sarsenbay Almas', title: 'Assignment #04 report — Sarsenbay Almas 24B032028',
+  styles: {
+    default: { document: { run: { font: FONT, size: 21 } } },
+    paragraphStyles: [
+      { id: 'Title', name: 'Title', basedOn: 'Normal', run: { font: FONT, size: 44, bold: true, color: '0B6E69' }, paragraph: { spacing: { before: 0, after: 60 }, keepNext: true } },
+      { id: 'Heading1', name: 'Heading 1', basedOn: 'Normal', next: 'Normal', quickFormat: true, run: { font: FONT, size: 30, bold: true, color: '16282D' }, paragraph: { spacing: { before: 320, after: 120 }, keepNext: true, outlineLevel: 0 } },
+      { id: 'Heading2', name: 'Heading 2', basedOn: 'Normal', next: 'Normal', quickFormat: true, run: { font: FONT, size: 24, bold: true, color: '0B6E69' }, paragraph: { spacing: { before: 200, after: 80 }, keepNext: true, outlineLevel: 1 } }
+    ]
+  },
+  numbering: { config: [
+    { reference: 'bul', levels: [{ level: 0, format: LevelFormat.BULLET, text: '•', alignment: AlignmentType.LEFT, style: { paragraph: { indent: { left: 540, hanging: 270 } } } }] },
+    { reference: 'num', levels: [{ level: 0, format: LevelFormat.DECIMAL, text: '%1.', alignment: AlignmentType.LEFT, style: { paragraph: { indent: { left: 540, hanging: 360 } } } }] }
+  ] },
+  sections: [{
+    properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: 1134, bottom: 1134, left: 1134, right: 1134 } } },
+    footers: { default: new Footer({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [
+      new TextRun({ text: 'Sarsenbay Almas · 24B032028 · Wednesday 08:00–11:00 · Software Engineering — Assignment #04 · page ', size: 16, font: FONT, color: '4D6268' }),
+      new TextRun({ children: [PageNumber.CURRENT], size: 16, font: FONT, color: '4D6268' })] })] }) },
+    children
+  }]
+});
+Packer.toBuffer(doc).then((buf) => { fs.writeFileSync('Assignment04_Report_Sarsenbay_Almas_24B032028.docx', buf); console.log('written'); });

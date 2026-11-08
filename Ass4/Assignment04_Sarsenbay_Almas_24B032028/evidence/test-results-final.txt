@@ -1,0 +1,251 @@
+$ npm run test:final
+# date: 2026-11-08 14:52 UTC  node: v22.23.4
+
+> smart-campus-room-checker@2.0.0 test:final
+> node --test "tests/final.*.test.mjs"
+
+TAP version 13
+# Subtest: time: parseTime accepts valid 24h times and rejects malformed ones
+ok 1 - time: parseTime accepts valid 24h times and rejects malformed ones
+  ---
+  duration_ms: 1.266987
+  type: 'test'
+  ...
+# Subtest: time: formatTime is the inverse of parseTime
+ok 2 - time: formatTime is the inverse of parseTime
+  ---
+  duration_ms: 0.531062
+  type: 'test'
+  ...
+# Subtest: AC1: malformed or missing times are INVALID
+ok 3 - AC1: malformed or missing times are INVALID
+  ---
+  duration_ms: 0.54372
+  type: 'test'
+  ...
+# Subtest: AC1: end must be strictly after start
+ok 4 - AC1: end must be strictly after start
+  ---
+  duration_ms: 0.278309
+  type: 'test'
+  ...
+# Subtest: AC1 boundary: start 08:59 is in the past (INVALID), start 09:00 equals "now" (allowed)
+ok 5 - AC1 boundary: start 08:59 is in the past (INVALID), start 09:00 equals "now" (allowed)
+  ---
+  duration_ms: 0.390059
+  type: 'test'
+  ...
+# Subtest: AC2 boundary: exactly 120 minutes is allowed, 121 minutes is TOO_LONG
+ok 6 - AC2 boundary: exactly 120 minutes is allowed, 121 minutes is TOO_LONG
+  ---
+  duration_ms: 0.484916
+  type: 'test'
+  ...
+# Subtest: AC3: a blocked room is BLOCKED even when the time is otherwise free
+ok 7 - AC3: a blocked room is BLOCKED even when the time is otherwise free
+  ---
+  duration_ms: 0.351892
+  type: 'test'
+  ...
+# Subtest: AC4: partial, inner, enclosing and identical overlaps all CONFLICT (R101 has 10:00-11:00)
+ok 8 - AC4: partial, inner, enclosing and identical overlaps all CONFLICT (R101 has 10:00-11:00)
+  ---
+  duration_ms: 0.401559
+  type: 'test'
+  ...
+# Subtest: AC4 boundary: touching intervals do NOT overlap (ends at 10:00 / starts at 11:00)
+ok 9 - AC4 boundary: touching intervals do NOT overlap (ends at 10:00 / starts at 11:00)
+  ---
+  duration_ms: 0.569403
+  type: 'test'
+  ...
+# Subtest: AC4: back-to-back bookings in one room (R301 09-10, 10-11) leave 11:00 free but 10:00-10:30 busy
+ok 10 - AC4: back-to-back bookings in one room (R301 09-10, 10-11) leave 11:00 free but 10:00-10:30 busy
+  ---
+  duration_ms: 0.651268
+  type: 'test'
+  ...
+# Subtest: AC5: catalog and bookings are deeply frozen; mutation attempts throw
+ok 11 - AC5: catalog and bookings are deeply frozen; mutation attempts throw
+  ---
+  duration_ms: 1.009158
+  type: 'test'
+  ...
+# Subtest: AC5: running many checks never changes booking data
+ok 12 - AC5: running many checks never changes booking data
+  ---
+  duration_ms: 3.209757
+  type: 'test'
+  ...
+# Subtest: AC6: messages are specific and actionable
+ok 13 - AC6: messages are specific and actionable
+  ---
+  duration_ms: 0.384324
+  type: 'test'
+  ...
+# Subtest: AC6: page is responsive and announces results (static checks of index.html / styles.css)
+ok 14 - AC6: page is responsive and announces results (static checks of index.html / styles.css)
+  ---
+  duration_ms: 0.617351
+  type: 'test'
+  ...
+# Subtest: catalog: at least 4 rooms, each with id, name, capacity, equipment, blocked flag, bookings
+ok 15 - catalog: at least 4 rooms, each with id, name, capacity, equipment, blocked flag, bookings
+  ---
+  duration_ms: 1.995538
+  type: 'test'
+  ...
+# Subtest: F1 boundary: capacity exactly equal to attendees matches, one more attendee does not
+ok 16 - F1 boundary: capacity exactly equal to attendees matches, one more attendee does not
+  ---
+  duration_ms: 1.327439
+  type: 'test'
+  ...
+# Subtest: F1: empty attendees means no capacity constraint and is NOT an error
+ok 17 - F1: empty attendees means no capacity constraint and is NOT an error
+  ---
+  duration_ms: 0.182291
+  type: 'test'
+  ...
+# Subtest: F1: invalid attendee values produce an error and no capacity filtering
+ok 18 - F1: invalid attendee values produce an error and no capacity filtering
+  ---
+  duration_ms: 0.210952
+  type: 'test'
+  ...
+# Subtest: F2: room must contain ALL selected equipment items
+ok 19 - F2: room must contain ALL selected equipment items
+  ---
+  duration_ms: 0.359222
+  type: 'test'
+  ...
+# Subtest: F2: unknown equipment matches nothing; no selection matches everything
+ok 20 - F2: unknown equipment matches nothing; no selection matches everything
+  ---
+  duration_ms: 0.120478
+  type: 'test'
+  ...
+# Subtest: F1+F2 combined: both rules apply together
+ok 21 - F1+F2 combined: both rules apply together
+  ---
+  duration_ms: 0.267402
+  type: 'test'
+  ...
+# Subtest: F2: equipment options are derived from the catalog (sorted, unique)
+ok 22 - F2: equipment options are derived from the catalog (sorted, unique)
+  ---
+  duration_ms: 0.472332
+  type: 'test'
+  ...
+# Subtest: F3: a blocked room is never AVAILABLE for any valid interval
+ok 23 - F3: a blocked room is never AVAILABLE for any valid interval
+  ---
+  duration_ms: 2.006313
+  type: 'test'
+  ...
+# Subtest: F3: filter keeps matching blocked rooms visible but flagged (so they can be explained)
+ok 24 - F3: filter keeps matching blocked rooms visible but flagged (so they can be explained)
+  ---
+  duration_ms: 0.942536
+  type: 'test'
+  ...
+# Subtest: filtering is pure: it does not modify the catalog or the input
+ok 25 - filtering is pure: it does not modify the catalog or the input
+  ---
+  duration_ms: 0.49285
+  type: 'test'
+  ...
+# Subtest: F4: empty state is shown with a clear message when no room matches
+ok 26 - F4: empty state is shown with a clear message when no room matches
+  ---
+  duration_ms: 1.796619
+  type: 'test'
+  ...
+# Subtest: F4: empty state names the combined requirement and recovers when relaxed
+ok 27 - F4: empty state names the combined requirement and recovers when relaxed
+  ---
+  duration_ms: 1.146589
+  type: 'test'
+  ...
+# Subtest: F5: switching the selected room refreshes the availability result (same times, different room)
+ok 28 - F5: switching the selected room refreshes the availability result (same times, different room)
+  ---
+  duration_ms: 2.379914
+  type: 'test'
+  ...
+# Subtest: F5: availability uses ONLY the chosen room bookings (no cross-room leakage)
+ok 29 - F5: availability uses ONLY the chosen room bookings (no cross-room leakage)
+  ---
+  duration_ms: 0.702366
+  type: 'test'
+  ...
+# Subtest: F5: before the first check, switching rooms shows a prompt, not a stale result
+ok 30 - F5: before the first check, switching rooms shows a prompt, not a stale result
+  ---
+  duration_ms: 0.448414
+  type: 'test'
+  ...
+# Subtest: editing a time after a check hides the old result (no stale answer)
+ok 31 - editing a time after a check hides the old result (no stale answer)
+  ---
+  duration_ms: 0.424463
+  type: 'test'
+  ...
+# Subtest: check without a selected room tells the user what to do
+ok 32 - check without a selected room tells the user what to do
+  ---
+  duration_ms: 0.342814
+  type: 'test'
+  ...
+# Subtest: changing requirements drops a selection that no longer matches, with an explanation
+ok 33 - changing requirements drops a selection that no longer matches, with an explanation
+  ---
+  duration_ms: 0.368071
+  type: 'test'
+  ...
+# Subtest: a room hidden by the filters cannot be selected
+ok 34 - a room hidden by the filters cannot be selected
+  ---
+  duration_ms: 0.908279
+  type: 'test'
+  ...
+# Subtest: full user flow: requirements -> room -> time -> result HTML (success)
+ok 35 - full user flow: requirements -> room -> time -> result HTML (success)
+  ---
+  duration_ms: 0.713418
+  type: 'test'
+  ...
+# Subtest: full user flow: unsuccessful outcomes render error / warning styles
+ok 36 - full user flow: unsuccessful outcomes render error / warning styles
+  ---
+  duration_ms: 3.971226
+  type: 'test'
+  ...
+# Subtest: rendering escapes dynamic text (no HTML injection through catalog data)
+ok 37 - rendering escapes dynamic text (no HTML injection through catalog data)
+  ---
+  duration_ms: 1.143052
+  type: 'test'
+  ...
+# Subtest: timeline: bookings and the request are positioned (and clipped) on the 08:00-20:00 strip
+ok 38 - timeline: bookings and the request are positioned (and clipped) on the 08:00-20:00 strip
+  ---
+  duration_ms: 0.595963
+  type: 'test'
+  ...
+# Subtest: store never mutates the shared catalog (AC5 through the UI layer)
+ok 39 - store never mutates the shared catalog (AC5 through the UI layer)
+  ---
+  duration_ms: 0.503972
+  type: 'test'
+  ...
+1..39
+# tests 39
+# suites 0
+# pass 39
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 358.222728
+# exit code: 0

@@ -1,0 +1,133 @@
+// UI state + presentation logic (no DOM, no HTML). Testable in plain Node.
+// State is changed ONLY through reduce(); the screen is derived by buildViewModel().
+import { filterRooms, parseRequirements, listEquipment } from '../core/filter.js';
+import { checkAvailability, STATUS } from '../core/availability.js';
+import { parseTime } from '../core/time.js';
+import { NOW_HHMM, TIMELINE_START_HHMM, TIMELINE_END_HHMM } from '../config.js';
+
+export const initialState = () => ({
+  attendees: '',
+  equipment: [],
+  selectedRoomId: null,
+  start: '',
+  end: '',
+  checked: false,   // true after the user pressed "Check availability"
+  notice: null      // one-off message (e.g. selection dropped by a filter change)
+});
+
+const matching = (state, rooms) =>
+  filterRooms(rooms, parseRequirements({ attendees: state.attendees, equipment: state.equipment }));
+
+/** Drop the selected room if the current requirements no longer match it. */
+function pruneSelection(state, rooms) {
+  if (state.selectedRoomId === null) return { ...state, notice: null };
+  if (matching(state, rooms).some((r) => r.id === state.selectedRoomId)) return { ...state, notice: null };
+  return {
+    ...state,
+    selectedRoomId: null,
+    checked: false,
+    notice: 'The room you selected no longer matches your requirements. Pick another room.'
+  };
+}
+
+export function reduce(state, action, rooms) {
+  switch (action.type) {
+    case 'setAttendees':
+      return pruneSelection({ ...state, attendees: action.value }, rooms);
+    case 'toggleEquipment': {
+      const without = state.equipment.filter((e) => e !== action.item);
+      const equipment = action.on ? [...without, action.item] : without;
+      return pruneSelection({ ...state, equipment }, rooms);
+    }
+    case 'selectRoom':
+      // F5: only the selection changes; the result is derived, so it refreshes automatically.
+      return matching(state, rooms).some((r) => r.id === action.id)
+        ? { ...state, selectedRoomId: action.id, notice: null }
+        : state;
+    case 'setStart':
+      return { ...state, start: action.value, checked: false, notice: null };
+    case 'setEnd':
+      return { ...state, end: action.value, checked: false, notice: null };
+    case 'check':
+      return state.selectedRoomId === null
+        ? { ...state, checked: false, notice: 'Select a room first, then check availability.' }
+        : { ...state, checked: true, notice: null };
+    case 'reset':
+      return initialState();
+    default:
+      return state;
+  }
+}
+
+const TONE = {
+  [STATUS.AVAILABLE]: { tone: 'success', title: 'Room is free' },
+  [STATUS.CONFLICT]: { tone: 'error', title: 'Time slot taken' },
+  [STATUS.BLOCKED]: { tone: 'error', title: 'Room blocked' },
+  [STATUS.TOO_LONG]: { tone: 'warning', title: 'Booking too long' },
+  [STATUS.INVALID]: { tone: 'warning', title: 'Check the time' }
+};
+
+/** Percent positions on the 08:00-20:00 strip; null when the interval is outside it. */
+function place(a, b) {
+  const t0 = parseTime(TIMELINE_START_HHMM);
+  const t1 = parseTime(TIMELINE_END_HHMM);
+  const l = Math.max(a, t0);
+  const r = Math.min(b, t1);
+  return r > l ? { left: ((l - t0) / (t1 - t0)) * 100, width: ((r - l) / (t1 - t0)) * 100 } : null;
+}
+
+function buildTimeline(room, state, result) {
+  if (!room) return null;
+  const booked = room.bookings
+    .map((b) => ({ ...b, pos: place(parseTime(b.start), parseTime(b.end)) }))
+    .filter((b) => b.pos);
+  const s = parseTime(state.start);
+  const e = parseTime(state.end);
+  const request = state.checked && s !== null && e !== null && e > s ? place(s, e) : null;
+  return { startLabel: TIMELINE_START_HHMM, endLabel: TIMELINE_END_HHMM, booked, request, tone: result ? result.tone : null };
+}
+
+export function buildViewModel(state, rooms, now = NOW_HHMM) {
+  const requirements = parseRequirements({ attendees: state.attendees, equipment: state.equipment });
+  const visible = filterRooms(rooms, requirements);
+  const selected = visible.find((r) => r.id === state.selectedRoomId) || null;
+
+  let result = null;
+  let hint = null;
+  if (selected && state.checked) {
+    const r = checkAvailability(selected, { start: state.start, end: state.end }, now);
+    result = { ...r, ...TONE[r.status] };
+  } else if (!selected) {
+    hint = 'Select a room to check its availability.';
+  } else {
+    hint = 'Enter a start and end time, then choose Check availability.';
+  }
+
+  return {
+    now,
+    requirements,
+    equipmentOptions: listEquipment(rooms),
+    rooms: visible.map((r) => ({ ...r, selected: r.id === state.selectedRoomId })),
+    totalRooms: rooms.length,
+    empty: visible.length === 0,
+    selectedRoom: selected,
+    result,
+    hint,
+    notice: state.notice,
+    timeline: buildTimeline(selected, state, result)
+  };
+}
+
+export function createStore(rooms, now = NOW_HHMM) {
+  let state = initialState();
+  const listeners = new Set();
+  return {
+    getState: () => state,
+    dispatch(action) {
+      state = reduce(state, action, rooms);
+      listeners.forEach((fn) => fn());
+    },
+    getViewModel: () => buildViewModel(state, rooms, now),
+    subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); }
+  };
+}
